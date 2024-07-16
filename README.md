@@ -1,4 +1,4 @@
-``Reupload project from between 2014 : This project was recovered so don't take commits into accounts``
+``Reupload project from 2014 : This project was recovered so don't take commits into accounts``
 
 <h1 align="center">👾 Space Invaders 👾</h1>
 <p align="center">
