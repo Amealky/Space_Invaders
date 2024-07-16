@@ -1,0 +1,99 @@
+APP_NAME = SpaceInvaders
+
+#Libs variables
+SDL_FOLDER =
+LIBS = -lSDL2main -lSDL2
+
+#COMPILERS variables and flags
+COMPILER = g++
+COMPILER_FLAG = -std=c++17
+INCLUDES_FLAG = -I $(SDL_FOLDER)/include
+LIBRARIES_FLAG = -L $(SDL_FOLDER)/lib $(LIBS)
+
+
+#SOURCE and BUILD variables
+BUILD_DATA_FOLDER = ./build_datas/
+SOURCES_FILES = $(shell find . -name "*.cpp")
+OBJECTS_FILES = $(addprefix $(BUILD_DATA_FOLDER),*.o)
+
+#OUTPUT APP
+OUTPUT_FOLDER = ./output/
+DEBUG_OUTPUT_NAME = $(APP_NAME)_Debug
+OUTPUT_NAME = $(APP_NAME)
+
+#Allow us to use the binary without exporting the libraries on PATH
+RPATH_LIBRARIES_FLAG = -Wl,-rpath,'$$ORIGIN/lib'
+
+#COMMANDS
+CREATE_BUILD_DATA_FOLDER_COMMAND = mkdir -p $(BUILD_DATA_FOLDER)
+
+DEBUG_COMPILE_SOURCES_COMMAND = \
+    for file in $(SOURCES_FILES); do \
+		$(COMPILER) $(COMPILER_FLAG) -c -g $$file -o $(BUILD_DATA_FOLDER)$$(basename $$file).o $(INCLUDES_FLAG); \
+	done
+
+COMPILE_SOURCES_COMMAND = \
+    for file in $(SOURCES_FILES); do \
+		$(COMPILER) $(COMPILER_FLAG) -c $$file -o $(BUILD_DATA_FOLDER)$$(basename $$file).o $(INCLUDES_FLAG) ; \
+	done
+
+DEBUG_LINKING_COMMAND = $(COMPILER) $(COMPILER_FLAG) $(OBJECTS_FILES) -o $(OUTPUT_FOLDER)$(DEBUG_OUTPUT_NAME) $(LIBRARIES_FLAG) $(RPATH_LIBRARIES_FLAG)
+LINKING_COMMAND = $(COMPILER) $(COMPILER_FLAG) $(OBJECTS_FILES) -o $(OUTPUT_FOLDER)$(OUTPUT_NAME) $(LIBRARIES_FLAG) $(RPATH_LIBRARIES_FLAG)
+
+CREATE_OUTPUT_FOLDER_COMMAND = mkdir -p $(OUTPUT_FOLDER)
+DEBUG_RUN_COMMAND = $(OUTPUT_FOLDER)$(DEBUG_OUTPUT_NAME)
+RUN_COMMAND = $(OUTPUT_FOLDER)$(OUTPUT_NAME)
+
+CLEAN_COMMAND = rm $(BUILD_DATA_FOLDER)*.o
+
+# Detect OS to modify some variables and comands
+ifeq ($(OS), Windows_NT)
+	APP_NAME := $(APP_NAME)_windows
+	SOURCES_FILES = $(shell dir /s /b *.cpp)
+	CREATE_BUILD_DATA_FOLDER_COMMAND = if not exist "$(BUILD_DATA_FOLDER)" mkdir "$(BUILD_DATA_FOLDER)"
+	COMPILE_SOURCES_COMMAND = \
+		for %%f in ($(SOURCES_FILES)) do ( \
+			$(COMPILER) $(COMPILER_FLAG) -c %%f -o $(BUILD_DATA_FOLDER)\%%~nf.o $(INCLUDES_FLAG) \
+		)
+	LIBRARIES_FLAG := $(LIBRARIES_FLAG) -mwindows -lmingw32 $(LIBS)
+
+	OUTPUT_FOLDER := $(OUTPUT_FOLDER)/windows/
+	CREATE_OUTPUT_FOLDER_COMMAND = if not exist "$(OUTPUT_FOLDER)" mkdir "$(OUTPUT_FOLDER)"
+	OUTPUT_PATH = $(OUTPUT_FOLDER)$(APP_NAME).exe
+	CLEAN_COMMAND = del $(BUILD_DATA_FOLDER)\*.o
+else 
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S), Darwin)
+		APP_NAME := $(APP_NAME)_mac
+		OUTPUT_FOLDER := $(OUTPUT_FOLDER)mac/
+		RPATH_LIBRARIES_FLAG = -Wl,-rpath,@loader_path/lib
+	else ifeq ($(UNAME_S),Linux)
+		APP_NAME := $(APP_NAME)_linux
+		OUTPUT_FOLDER := $(OUTPUT_FOLDER)linux/
+	endif
+endif
+
+
+
+#MAKE COMMANDS ( OS AGNOSTIC )
+debug_compile:
+	$(CREATE_BUILD_DATA_FOLDER_COMMAND)
+	$(DEBUG_COMPILE_SOURCES_COMMAND)
+	$(CREATE_OUTPUT_FOLDER_COMMAND)
+	$(DEBUG_LINKING_COMMAND)
+	
+
+compile:
+	$(CREATE_BUILD_DATA_FOLDER_COMMAND)
+	$(COMPILE_SOURCES_COMMAND)
+	$(CREATE_OUTPUT_FOLDER_COMMAND)
+	$(LINKING_COMMAND)
+
+debug_run:
+	$(DEBUG_RUN_COMMAND)
+
+run:
+	$(RUN_COMMAND)
+
+clean:
+	$(CLEAN_COMMAND)
